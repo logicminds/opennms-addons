@@ -1,0 +1,48 @@
+<events>
+<event>
+  <uei>uei.opennms.org/vendor/weather/events/WeatherAlert</uei>
+  <event-label>Weather: General Weather Alert </event-label>
+  <descr>  &lt;p&gt; %parm[title]% &lt;/p&gt;&lt;br&gt;
+    &lt;p&gt; %parm[alertmsg]% &lt;/p&gt;
+    &lt;br&gt;
+    &lt;b&gt;Areas affected:&lt;/b&gt; %parm[counties]%
+  
+  </descr>
+  <logmsg dest='logndisplay'> General Weather Alert: %parm[title]% for %parm[loc]%</logmsg>
+  <severity>Normal</severity>
+ </event>
+<event>
+  <uei>uei.opennms.org/vendor/weather/events/tornadoAlert</uei>
+  <event-label>Weather: Tornado Weather Alert </event-label>
+  <descr>  &lt;p&gt; %parm[title]% &lt;/p&gt;&lt;br&gt;
+    &lt;p&gt; %parm[alertmsg]% &lt;/p&gt;
+    &lt;br&gt;
+     &lt;b&gt;Areas affected:&lt;/b&gt; %parm[counties]%
+  
+  </descr>
+  <logmsg dest='logndisplay'> Tornado Weather Alert: %parm[title]% for %parm[loc]%</logmsg>
+  <severity>Normal</severity>
+ </event>
+<event>
+  <uei>uei.opennms.org/vendor/weather/events/hurricaneAlert</uei>
+  <event-label>Weather: Hurricane Weather Alert </event-label>
+  <descr> &lt;p&gt; %parm[title]% &lt;/p&gt;&lt;br&gt;
+    &lt;p&gt; %parm[alertmsg]% &lt;/p&gt;
+    &lt;br&gt;
+    &lt;b&gt;Areas affected:&lt;/b&gt; %parm[counties]%
+  </descr>
+  <logmsg dest='logndisplay'> Hurricane Weather Alert: %parm[title]% for %parm[loc]%</logmsg>
+  <severity>Normal</severity>
+ </event>
+<event>
+  <uei>uei.opennms.org/vendor/weather/events/blizzardAlert</uei>
+  <event-label>Weather: Blizzard Weather Alert </event-label>
+  <descr> &lt;p&gt; %parm[title]% &lt;/p&gt;&lt;br&gt;
+    &lt;p&gt; %parm[alertmsg]% &lt;/p&gt;
+    &lt;br&gt;
+     &lt;b&gt;Areas affected:&lt;/b&gt; %parm[counties]%
+  </descr>
+  <logmsg dest='logndisplay'> Blizzard Weather Alert: %parm[title]% for %parm[loc]%</logmsg>
+  <severity>Normal</severity>
+ </event>
+</events>
