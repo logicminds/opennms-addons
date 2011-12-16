@@ -1,0 +1,19 @@
+<notification name="Blizzard Weather Alert" status="on" writeable="yes">
+        <uei xmlns="">uei.opennms.org/vendor/weather/events/blizzardAlert</uei>
+        <description xmlns="">A Blizzard Weather Alert has been received</description>
+        <rule xmlns="">(IPADDR IPLIKE *.*.*.*)</rule>
+        <destinationPath xmlns="">test</destinationPath>
+        <text-message xmlns="">A Blizzard Weather Alert has been received by opennms. %parm[condition]% %parm[summary]% Affected counties: %parm[counties]%</text-message>
+        <subject xmlns="">%parm[title]% for location : %parm[loc]%</subject>
+        <numeric-message xmlns="">111-%noticeid%</numeric-message>
+</notification>
+
+<notification name="General Weather Alert" status="on" writeable="yes">
+        <uei xmlns="">uei.opennms.org/vendor/weather/events/WeatherAlert</uei>
+        <description xmlns="">A General Weather Alert has been received</description>
+        <rule xmlns="">(IPADDR IPLIKE *.*.*.*)</rule>
+        <destinationPath xmlns="">test</destinationPath>
+        <text-message xmlns="">A General Weather Alert has been received by opennms. %parm[condition]% %parm[summary]% Affected counties: %parm[counties]%</text-message>
+        <subject xmlns="">%parm[title]% for location : %parm[loc]%</subject>
+        <numeric-message xmlns="">111-%noticeid%</numeric-message>
+</notification>
