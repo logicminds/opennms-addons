@@ -1,8 +1,10 @@
+#!/usr/bin/env python
 import urllib
 from xml.dom import minidom
 import sys
 import re
 import subprocess
+import os
 
 '''
     Author: Corey Osman
@@ -10,6 +12,8 @@ import subprocess
     Date: 2-26-2010
     Purpose: get the local weather from a zip or airport code that is defined in the dict and return to opennms as an event
     Usage: getWeather.py 30067 or getWeather.py ATL
+    Update: 3-19-2012
+         Fixes: better error handling while parsing data and calling the send event script
 '''
 
 # Set the path of your send-event.pl otherwise leave the default value
@@ -33,7 +37,7 @@ EXTREMEWORDS=['hurricane', 'tornado', 'blizzard']
 # If you add more zip codes here they will be included with the --all command
 AIRPORT_CODES={'ATL': '30297', 'BWI': '21075', 'BOS': '02081', 'ORD': '60018', 
 'CVG': '41048', 'TEX': '75050', 'DEN': '80216', 'IND': '46241', 'SFO': '94587',
-'SEA': '90002'}
+'SEA': '90002', 'PDX': '90210'}
 
 # Add more extreme words to the following list to trigger new events
 # These events will need to be defined in the Weather.events.xml file
@@ -69,33 +73,40 @@ def parsealert(datalist):
     '''
      
     weatherdata = []
-    # loop through each dict of data in list
+    # loop through each dict of data in alert list
     for data in datalist:
-        
         # Separtate alert from counties and adjent words
-        strlist = re.split('\:\s', data['aws:msg-summary'], maxsplit=1)
+        strlist = re.split('\:\s', data.get('aws:msg-summary'), maxsplit=1)
         data['summary'] = strlist[0]
         # Separate the counties and condition
-        # It appears the NWS reports different strings everytime
-        strlist2 = re.split('\-\s\-?', strlist[1], maxsplit=1)
-        # Do this if the condition doesn't exist
-        if len(strlist2) == 2:
-            data['counties'] = strlist2[0]
-            data['condition'] = strlist2[1]
-        else:
-             data['counties'] = strlist[1]
-             data['condition'] = ""
+        # It appears the NWS reports different strings everytime which is diffictult to parse
+        try:
+            strlist2 = re.split('\-\s\-?', strlist[1], maxsplit=1)
+            # Do this if the condition doesn't exist
+            if len(strlist2) == 2:
+                data['counties'] = strlist2[0]
+                data['condition'] = strlist2[1]
+            else:
+                data['counties'] = strlist[1]
+                data['condition'] = ""
+        except:
+            #print "Warning: no county or condition information exists"
+            data['counties'] = ""
+            data['condition'] = ""
 
         # Lets find out if the weather is extreme by searching for specific words
         for word in EXTREMEWORDS:
-            # If the alert or condition contains one of the extreme words mark as extreme
-            if re.search(word, data['condition'] + data['summary'], re.IGNORECASE ):
-                data['extreme'] = True
-                data['extremetype'] = word + 'Alert'
-            else:
-                data['extreme'] = False
-                data['extremetype'] = None
-
+            try:
+                # If the alert or condition contains one of the extreme words mark as extreme
+                if re.search(word, data.get('condition') + data.get('summary'), re.IGNORECASE ):
+                    data['extreme'] = True
+                    data['extremetype'] = word + 'Alert'
+                else:
+                    data['extreme'] = False
+                    data['extremetype'] = None
+            except:
+                None
+                
         weatherdata.append(data)
 
     return weatherdata
@@ -135,7 +146,7 @@ def get_node_data(dom, fields):
 def weather_for_zip(zip_code):
     '''
     Input: send a zipcode
-    Output: a list of dicts that contain various typs of information gathered from the resulting xml weather data from weatherbug
+    Output: a list of dicts that contain various types of information gathered from the resulting xml weather data from weatherbug
     A list is returned since weather data may contain multiple alerts for different times, areas or event types of weather.
     '''
     # append the zipcode to the weather url
@@ -162,23 +173,25 @@ def send_to_opennms(alerts, loc):
     
     uei='uei.opennms.org/vendor/weather/events/WeatherAlert'
     # Send different types of alerts based on weather condition
+    if not os.path.isfile(SEND_EVENT):
+        print "%s file not found" % SEND_EVENT
+        return None
+    
     for alert in alerts:
         # If this is an event that is "extreme" defined by the extreme words list then lets make a new weather event type.
         # This will give us the ability to have a more refined event that can be filtered or alerted more easily.  
-        if alert['extreme']:
-            uei='uei.opennms.org/vendor/weather/events/%s' % (alert['extremetype'])
+        if alert.get('extreme'):
+            uei='uei.opennms.org/vendor/weather/events/%s' % (alert.get('extremetype'))
 
-        pargs='%s %s %s --parm \'alertmsg %s\' --parm \'loc %s\' --parm \'type %s\' --parm \'title %s\' --parm \'summary %s\' --parm \'counties %s\'' % (SEND_EVENT,uei, NMS_HOST, alert['condition'], loc, alert['aws:type'], alert['aws:title'], alert['summary'], alert['counties'])
-       
-   
-        #print pargs      
+        pargs='%s %s %s --parm \'alertmsg %s\' --parm \'loc %s\' --parm \'type %s\' --parm \'title %s\' --parm \'summary %s\' --parm \'counties %s\'' % (SEND_EVENT,uei, NMS_HOST, alert.get('condition'), loc, alert.get('aws:type'), alert.get('aws:title'), alert.get('summary'), alert.get('counties'))
+
         subprocess.Popen(pargs, stdout=subprocess.PIPE, shell=True)
+        print "%s : %s" % (loc, alert.get('aws:title'))
         # Uncomment the break to process multiple weather alerts from one area
         #break
 
 def alert_by_zip(zipcode):
     alerts = weather_for_zip(zipcode)
-    #print alerts
     if alerts:
         send_to_opennms(alerts, zipcode)
     else:
@@ -187,7 +200,7 @@ def alert_by_zip(zipcode):
 def alert_by_airport(aircode):
     alerts = weather_for_zip(AIRPORT_CODES[aircode])
     if alerts:
-        send_to_opennms(alerts, aircode)
+       send_to_opennms(alerts, aircode)
     else:
         print "No weather to report %s" % aircode
                      
@@ -202,6 +215,7 @@ if len(sys.argv) is 2:
     # If you want to report lots of weather alerts you can iterate over all the airport codes
     elif sys.argv[1] == '--all':
         for key in AIRPORT_CODES.iterkeys():
+            print "Checking weather in %s " % key
             alert_by_airport(key)
 
      # check to see if the airport code is valid and is in the airport_codes dictionary
